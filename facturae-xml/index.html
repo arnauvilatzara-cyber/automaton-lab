@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Generador de factura Facturae (XML) en tu navegador</title>
+<style>body{font:16px system-ui;max-width:720px;margin:2rem auto;padding:0 1rem}fieldset{margin:1rem 0}label{display:block;margin:.3rem 0}input{width:100%;padding:.3rem;box-sizing:border-box}.g{display:grid;grid-template-columns:1fr 1fr;gap:.5rem}pre{background:#f4f4f4;padding:.7rem;overflow:auto;max-height:260px}.aviso{background:#fff7e0;border:1px solid #e0c060;padding:.7rem}</style></head>
+<body>
+<h1>Generador de factura Facturae (XML)</h1>
+<p>Rellena los datos y descarga un XML Facturae 3.2.2. Todo se calcula en tu navegador: ningún dato se envía a ningún servidor.</p>
+<p class="aviso"><b>Límites:</b> el XML <b>no va firmado</b> (FACe exige firma electrónica XAdES) y no se ha validado contra el esquema oficial. Herramienta creada por un agente de IA (Automaton Lab) bajo supervisión humana. No es asesoramiento fiscal ni legal. Revisa el resultado antes de usarlo.</p>
+<form id="f">
+<fieldset><legend>Factura</legend><div class="g"><label>Número<input name="numero" value="2026-001"></label><label>Fecha (AAAA-MM-DD)<input name="fecha" id="fecha"></label><label>IRPF % (0 si no aplica)<input name="irpf" value="0"></label></div></fieldset>
+<fieldset><legend>Emisor</legend><div class="g"><label>NIF<input name="e_nif"></label><label>Nombre / razón social<input name="e_nombre"></label><label>Primer apellido (persona física)<input name="e_ap"></label><label>Dirección<input name="e_dir"></label><label>C.P.<input name="e_cp"></label><label>Población<input name="e_pob"></label><label>Provincia<input name="e_prov"></label><label>Tipo<select name="e_tipo"><option value="fisica">Persona física</option><option value="juridica">Persona jurídica</option></select></label></div></fieldset>
+<fieldset><legend>Receptor</legend><div class="g"><label>NIF<input name="r_nif"></label><label>Nombre / razón social<input name="r_nombre"></label><label>Primer apellido (persona física)<input name="r_ap"></label><label>Dirección<input name="r_dir"></label><label>C.P.<input name="r_cp"></label><label>Población<input name="r_pob"></label><label>Provincia<input name="r_prov"></label><label>Tipo<select name="r_tipo"><option value="juridica">Persona jurídica</option><option value="fisica">Persona física</option></select></label></div></fieldset>
+<fieldset><legend>Línea (una por ahora)</legend><div class="g"><label>Descripción<input name="l_desc"></label><label>Cantidad<input name="l_cant" value="1"></label><label>Precio unitario sin IVA<input name="l_prec" value="0"></label><label>IVA % (21, 10, 4, 0)<input name="l_iva" value="21"></label></div></fieldset>
+<button type="submit">Generar y descargar XML</button>
+</form>
+<p id="res"></p><pre id="xml" hidden></pre>
+<script src="facturae.js"></script>
+<script>
+document.getElementById('fecha').value=new Date().toISOString().slice(0,10);
+document.getElementById('f').addEventListener('submit',function(ev){
+ ev.preventDefault();var d=Object.fromEntries(new FormData(ev.target));
+ var P=function(x){return{tipo:d[x+'_tipo'],nif:d[x+'_nif'],nombre:d[x+'_nombre'],apellido1:d[x+'_ap'],direccion:d[x+'_dir'],cp:d[x+'_cp'],poblacion:d[x+'_pob'],provincia:d[x+'_prov']}};
+ var f={numero:d.numero,fecha:d.fecha,irpf:Number(d.irpf)||0,emisor:P('e'),receptor:P('r'),lineas:[{descripcion:d.l_desc,cantidad:Number(d.l_cant),precio:Number(d.l_prec),iva:Number(d.l_iva)}]};
+ var c=Facturae.calcular(f),xml=Facturae.generar(f);
+ document.getElementById('res').textContent='Base '+c.base.toFixed(2)+' € · IVA '+c.cuota.toFixed(2)+' € · IRPF '+c.irpf.toFixed(2)+' € · Total factura '+c.total.toFixed(2)+' € · A cobrar '+c.aCobrar.toFixed(2)+' €';
+ var pre=document.getElementById('xml');pre.hidden=false;pre.textContent=xml;
+ var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([xml],{type:'application/xml'}));a.download='factura-'+d.numero+'.xml';a.click();
+});
+</script></body></html>
