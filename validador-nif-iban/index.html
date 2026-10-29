@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Validador por lotes de NIF/NIE/CIF e IBAN (en tu navegador)</title>
+<style>
+body{font-family:system-ui,sans-serif;max-width:860px;margin:2rem auto;padding:0 1rem;line-height:1.5;color:#1b1b1b}
+.aviso{background:#eef4ff;border:1px solid #b9cdf5;padding:.8rem 1rem;border-radius:6px;font-size:.92rem}
+textarea{width:100%;height:150px;font-family:monospace;box-sizing:border-box}
+button{padding:.5rem 1rem;margin:.5rem .5rem .5rem 0;cursor:pointer}
+table{border-collapse:collapse;width:100%;margin-top:1rem;font-size:.92rem}
+th,td{border:1px solid #ccc;padding:.3rem .5rem;text-align:left}
+.ok{color:#0a7a2f;font-weight:600}.ko{color:#b00020;font-weight:600}
+small{color:#555}
+</style>
+</head>
+<body>
+<h1>Validador por lotes de NIF/NIE/CIF e IBAN</h1>
+<p class="aviso"><strong>Transparencia:</strong> esta herramienta ha sido creada por un agente de IA (Automaton Lab) bajo supervisión humana. Todo se calcula en tu navegador: no se envía ni se guarda ningún dato. No usa cookies ni scripts de seguimiento.</p>
+<p>Pega una línea por dato (o un CSV con la primera columna NIF y, opcionalmente, la segunda IBAN). Comprueba <em>formato y dígito de control</em>. <strong>No</strong> verifica que el documento o la cuenta existan, ni es asesoramiento fiscal o legal.</p>
+<label for="entrada"><strong>Datos</strong> (ej.: <code>12345678Z;ES9121000418450200051332</code>)</label>
+<textarea id="entrada" placeholder="12345678Z;ES9121000418450200051332&#10;X1234567L;&#10;A58818501;ES9121000418450200051333"></textarea>
+<div>
+<button id="validar">Validar</button>
+<button id="csv" disabled>Descargar informe CSV</button>
+<button id="limpiar">Limpiar</button>
+</div>
+<p id="resumen" role="status"></p>
+<table id="tabla" hidden>
+<thead><tr><th>#</th><th>NIF</th><th>Resultado NIF</th><th>IBAN</th><th>Resultado IBAN</th></tr></thead>
+<tbody></tbody>
+</table>
+<p><small>Código abierto y auditable en esta misma página. Versión 0.1 · Se ofrecerá una versión descargable sin conexión más adelante.</small></p>
+<script src="validators.js"></script>
+<script>
+(function(){
+  var filas=[];
+  var $=function(id){return document.getElementById(id)};
+  function esc(s){return String(s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
+  function celda(r,extra){
+    if(!r) return "";
+    return r.valido?'<span class="ok">válido</span>'+(extra?" ("+esc(extra)+")":""):'<span class="ko">no válido</span>: '+esc(r.motivo);
+  }
+  function validar(){
+    var lineas=$("entrada").value.split(/\r?\n/).filter(function(l){return l.trim()!==""}).slice(0,5000);
+    filas=lineas.map(function(l,i){
+      var p=l.split(/[;,\t]/);
+      var nif=(p[0]||"").trim(), iban=(p[1]||"").trim();
+      return {n:i+1,nif:nif,iban:iban,rn:nif?Validadores.validarNif(nif):null,ri:iban?Validadores.validarIban(iban):null};
+    });
+    var tb=$("tabla").querySelector("tbody"); tb.innerHTML="";
+    var ok=0,ko=0;
+    filas.forEach(function(f){
+      [f.rn,f.ri].forEach(function(r){if(r){r.valido?ok++:ko++}});
+      var tr=document.createElement("tr");
+      tr.innerHTML="<td>"+f.n+"</td><td>"+esc(f.nif)+"</td><td>"+celda(f.rn,f.rn&&f.rn.tipo)+"</td><td>"+esc(f.iban)+"</td><td>"+celda(f.ri,f.ri&&f.ri.pais)+"</td>";
+      tb.appendChild(tr);
+    });
+    $("tabla").hidden=filas.length===0;
+    $("csv").disabled=filas.length===0;
+    $("resumen").textContent=filas.length?("Filas: "+filas.length+" · válidos: "+ok+" · no válidos: "+ko):"No hay datos.";
+  }
+  function q(s){s=String(s);if(/^[=+\-@]/.test(s)) s="'"+s;return '"'+s.replace(/"/g,'""')+'"'}
+  function descargar(){
+    var out=["fila;nif;resultado_nif;iban;resultado_iban"];
+    filas.forEach(function(f){
+      out.push([f.n,q(f.nif),q(f.rn?(f.rn.valido?"válido":"no válido: "+f.rn.motivo):""),q(f.iban),q(f.ri?(f.ri.valido?"válido":"no válido: "+f.ri.motivo):"")].join(";"));
+    });
+    var b=new Blob(["\ufeff"+out.join("\n")],{type:"text/csv;charset=utf-8"});
+    var a=document.createElement("a");a.href=URL.createObjectURL(b);a.download="informe-validacion.csv";a.click();
+  }
+  $("validar").onclick=validar;
+  $("csv").onclick=descargar;
+  $("limpiar").onclick=function(){$("entrada").value="";filas=[];$("tabla").hidden=true;$("csv").disabled=true;$("resumen").textContent=""};
+})();
+</script>
+</body>
+</html>
