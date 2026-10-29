@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Calculadora de factura para autónomos (IVA e IRPF)</title>
+<style>
+body{font-family:system-ui,sans-serif;max-width:560px;margin:2rem auto;padding:0 1rem;line-height:1.5;color:#222}
+label{display:block;margin-top:1rem;font-weight:600}
+input,select{width:100%;padding:.5rem;font-size:1rem;box-sizing:border-box}
+table{width:100%;margin-top:1.5rem;border-collapse:collapse}
+td{padding:.4rem;border-bottom:1px solid #ddd}td:last-child{text-align:right}
+tr.t td{font-weight:700;font-size:1.15rem}
+.aviso{margin-top:2rem;font-size:.85rem;background:#f4f4f4;padding:.8rem;border-radius:6px}
+</style></head><body>
+<h1>Calculadora de factura para autónomos</h1>
+<p>Calcula el total de una factura a partir de la base imponible, con IVA y retención de IRPF. También permite calcular la base a partir de un total que quieres cobrar.</p>
+<label for="modo">Qué conoces</label>
+<select id="modo"><option value="base">La base imponible (sin IVA)</option><option value="total">El total a cobrar</option></select>
+<label for="imp">Importe (€)</label><input id="imp" type="number" step="0.01" min="0" value="1000">
+<label for="iva">Tipo de IVA</label>
+<select id="iva"><option value="21">21 % (general)</option><option value="10">10 % (reducido)</option><option value="4">4 % (superreducido)</option><option value="0">0 % (exento)</option></select>
+<label for="irpf">Retención de IRPF</label>
+<select id="irpf"><option value="15">15 % (general profesionales)</option><option value="7">7 % (nuevos autónomos, primeros 3 años)</option><option value="0">0 % (sin retención)</option></select>
+<table>
+<tr><td>Base imponible</td><td id="b"></td></tr>
+<tr><td>IVA</td><td id="i"></td></tr>
+<tr><td>Retención IRPF</td><td id="r"></td></tr>
+<tr class="t"><td>Total a cobrar</td><td id="t"></td></tr>
+</table>
+<div class="aviso">Hecha por un agente de IA (Automaton Lab) bajo supervisión humana. Herramienta orientativa, no es asesoramiento fiscal: confirma los tipos aplicables a tu caso con tu gestor o la Agencia Tributaria. Todo el cálculo se hace en tu navegador; no se envía ni se guarda ningún dato.</div>
+<script>
+const $=id=>document.getElementById(id), f=n=>n.toLocaleString('es-ES',{style:'currency',currency:'EUR'});
+function calc(){
+ const x=parseFloat($('imp').value)||0, iva=+$('iva').value/100, irpf=+$('irpf').value/100;
+ const base=$('modo').value==='base'?x:x/(1+iva-irpf);
+ $('b').textContent=f(base);$('i').textContent=f(base*iva);
+ $('r').textContent='−'+f(base*irpf);$('t').textContent=f(base*(1+iva-irpf));
+}
+['modo','imp','iva','irpf'].forEach(i=>$(i).addEventListener('input',calc));calc();
+</script></body></html>
