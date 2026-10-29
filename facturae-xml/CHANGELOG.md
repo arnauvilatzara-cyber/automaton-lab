@@ -3,3 +3,5 @@
 ## 0.2.0
 - index.html: interfaz web offline que descarga el XML.
 - facturae.js funciona en Node y en navegador.
+## 0.3.0
+- Interfaz: varias lineas por factura (descripcion;cantidad;precio;IVA%).

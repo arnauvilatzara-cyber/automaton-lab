@@ -10,7 +10,7 @@
 <fieldset><legend>Factura</legend><div class="g"><label>Número<input name="numero" value="2026-001"></label><label>Fecha (AAAA-MM-DD)<input name="fecha" id="fecha"></label><label>IRPF % (0 si no aplica)<input name="irpf" value="0"></label></div></fieldset>
 <fieldset><legend>Emisor</legend><div class="g"><label>NIF<input name="e_nif"></label><label>Nombre / razón social<input name="e_nombre"></label><label>Primer apellido (persona física)<input name="e_ap"></label><label>Dirección<input name="e_dir"></label><label>C.P.<input name="e_cp"></label><label>Población<input name="e_pob"></label><label>Provincia<input name="e_prov"></label><label>Tipo<select name="e_tipo"><option value="fisica">Persona física</option><option value="juridica">Persona jurídica</option></select></label></div></fieldset>
 <fieldset><legend>Receptor</legend><div class="g"><label>NIF<input name="r_nif"></label><label>Nombre / razón social<input name="r_nombre"></label><label>Primer apellido (persona física)<input name="r_ap"></label><label>Dirección<input name="r_dir"></label><label>C.P.<input name="r_cp"></label><label>Población<input name="r_pob"></label><label>Provincia<input name="r_prov"></label><label>Tipo<select name="r_tipo"><option value="juridica">Persona jurídica</option><option value="fisica">Persona física</option></select></label></div></fieldset>
-<fieldset><legend>Línea (una por ahora)</legend><div class="g"><label>Descripción<input name="l_desc"></label><label>Cantidad<input name="l_cant" value="1"></label><label>Precio unitario sin IVA<input name="l_prec" value="0"></label><label>IVA % (21, 10, 4, 0)<input name="l_iva" value="21"></label></div></fieldset>
+<fieldset><legend>Líneas (una por renglón: descripción;cantidad;precio sin IVA;IVA%)</legend><textarea name="lineas" rows="5" style="width:100%" placeholder="Diseño web;1;1000;21&#10;Libro;2;10;4"></textarea></fieldset>
 <button type="submit">Generar y descargar XML</button>
 </form>
 <p id="res"></p><pre id="xml" hidden></pre>
@@ -20,7 +20,8 @@ document.getElementById('fecha').value=new Date().toISOString().slice(0,10);
 document.getElementById('f').addEventListener('submit',function(ev){
  ev.preventDefault();var d=Object.fromEntries(new FormData(ev.target));
  var P=function(x){return{tipo:d[x+'_tipo'],nif:d[x+'_nif'],nombre:d[x+'_nombre'],apellido1:d[x+'_ap'],direccion:d[x+'_dir'],cp:d[x+'_cp'],poblacion:d[x+'_pob'],provincia:d[x+'_prov']}};
- var f={numero:d.numero,fecha:d.fecha,irpf:Number(d.irpf)||0,emisor:P('e'),receptor:P('r'),lineas:[{descripcion:d.l_desc,cantidad:Number(d.l_cant),precio:Number(d.l_prec),iva:Number(d.l_iva)}]};
+ var f={numero:d.numero,fecha:d.fecha,irpf:Number(d.irpf)||0,emisor:P('e'),receptor:P('r'),lineas:d.lineas.split('\n').filter(function(x){return x.trim()}).map(function(x){var p=x.split(';');return{descripcion:p[0].trim(),cantidad:Number(p[1]),precio:Number(p[2]),iva:p[3]===undefined||p[3].trim()===''?21:Number(p[3])}})};
+ if(!f.lineas.length||f.lineas.some(function(l){return !l.descripcion||isNaN(l.cantidad)||isNaN(l.precio)||isNaN(l.iva)})){document.getElementById('res').textContent='Revisa las líneas: descripción;cantidad;precio;IVA%';return}
  var c=Facturae.calcular(f),xml=Facturae.generar(f);
  document.getElementById('res').textContent='Base '+c.base.toFixed(2)+' € · IVA '+c.cuota.toFixed(2)+' € · IRPF '+c.irpf.toFixed(2)+' € · Total factura '+c.total.toFixed(2)+' € · A cobrar '+c.aCobrar.toFixed(2)+' €';
  var pre=document.getElementById('xml');pre.hidden=false;pre.textContent=xml;
